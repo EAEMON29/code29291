@@ -21,7 +21,7 @@ function App() {
   const topBarcodeRef = useRef(null);
   const previewSectionRef = useRef(null);
 
-  // --- AAMVA STANDARD BARCODE ENCODING ---
+  // --- AAMVA STANDARD BARCODE ENCODING (Dropdown Sync Fixed) ---
   useEffect(() => {
     if (pdf417Ref.current) {
       const cleanDOB = data.dob.replace(/\//g, '');
@@ -29,10 +29,13 @@ function App() {
       const cleanExpiry = data.expiryDate.replace(/\//g, '');
       const cleanDD = data.dd.replace(/\//g, '');
 
+      // Gender Mapping Fix: Data change hobar sathe sathe eta direct update hobe
+      const genderCode = data.sex === 'M' ? '1' : '2';
+
       const aamvaText = `@ ANSI 636000080002DL00410278ZN03200011DL` + 
         `DAQ${data.dlNo}DCS${data.lastName}DAC${data.firstName}DADNONE` + 
         `DDF${data.suffix}DAG${data.address}DAI${data.city}DAJ${data.state}DAK${data.zip}` +
-        `DBB${cleanDOB}DBD${cleanIssue}DBA${cleanExpiry}DBC${data.sex === 'M' ? '1' : '2'}` +
+        `DBB${cleanDOB}DBD${cleanIssue}DBA${cleanExpiry}DBC${genderCode}` + // Dynamic DBC Tag
         `DAU0${data.height} in` + `DAW${data.weight}DAY${data.eyeDL}DAZ${data.hairDL}` +
         `DCF${data.icn}DCGUSA` + `DCG${data.dlClass}DBE${cleanDD}`;
 
@@ -44,7 +47,7 @@ function App() {
         });
       } catch (e) { console.error("AAMVA Render Error:", e); }
     }
-  }, [data]); 
+  }, [data]); // State change holei auto Barcode update hobe
 
   const generateRandom = () => {
     const alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -56,7 +59,6 @@ function App() {
     const newExpiryDate = `06/23/${randomYear + 5}`;
     const formattedZip = Math.floor(10000 + Math.random() * 90000).toString() + "0000";
 
-    // --- SECURE DD RANDOMIZATION LOGIC ---
     const randomSecureCode = Math.floor(10000 + Math.random() * 89999);
     const suffixCodes = ['AAFD', 'BBCE', 'CCDF'];
     const randomSuffix = suffixCodes[Math.floor(Math.random() * suffixCodes.length)];
@@ -70,18 +72,18 @@ function App() {
     ];
     const randomLoc = addressPool[Math.floor(Math.random() * addressPool.length)];
 
+    const randomGender = Math.random() > 0.5 ? 'M' : 'F';
+
     setData({
       ...data,
       dlNo: randDL,
-      firstName: ['MICHAEL', 'ROBERT', 'JAMES', 'DAVID', 'KEVIN'][Math.floor(Math.random() * 5)],
+      firstName: randomGender === 'M' ? ['MICHAEL', 'ROBERT', 'JAMES', 'DAVID', 'KEVIN'][Math.floor(Math.random() * 5)] : ['EMILY', 'SARAH', 'JESSICA', 'LINDA', 'MARY'][Math.floor(Math.random() * 5)],
       lastName: ['SMITH', 'WILSON', 'MILLER', 'DAVIS', 'BROWN'][Math.floor(Math.random() * 5)],
-      dob: newDOB,
-      issueDate: newIssueDate,
-      expiryDate: newExpiryDate,
-      zip: formattedZip,
+      sex: randomGender,
+      dob: newDOB, issueDate: newIssueDate, expiryDate: newExpiryDate,
+      zip: formattedZip, address: randomLoc.addr, city: randomLoc.city, state: randomLoc.state,
       icn: Math.floor(Math.random()*10000000000000000).toString(),
-      dd: generatedDD, // Updated DD randomization
-      address: randomLoc.addr, city: randomLoc.city, state: randomLoc.state,
+      dd: generatedDD,
     });
   };
 
@@ -124,10 +126,10 @@ function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           <div className="md:col-span-2 flex flex-col items-center gap-3">
-            <p className="text-[10px] font-black text-slate-400 uppercase">ID Photo</p>
-            <label className="w-full aspect-[3/4] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer bg-slate-50 overflow-hidden shadow-inner">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Photo</p>
+            <label className="w-full aspect-[3/4] border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer bg-slate-50 overflow-hidden shadow-inner group">
               <input type="file" className="hidden" onChange={(e) => setData({...data, photo: URL.createObjectURL(e.target.files[0])})} />
-              {data.photo ? <img src={data.photo} className="w-full h-full object-cover" alt="user" /> : <span className="text-[10px] font-bold text-indigo-300">UPLOAD</span>}
+              {data.photo ? <img src={data.photo} className="w-full h-full object-cover" /> : <span className="text-[10px] font-bold text-indigo-300">UPLOAD</span>}
             </label>
           </div>
 
@@ -141,6 +143,20 @@ function App() {
             <InputField label="State" value={data.state} onChange={v => setData({...data, state: v.toUpperCase()})} />
             <InputField label="Zip code" value={data.zip} onChange={v => setData({...data, zip: v})} />
             <InputField label="Birth date" value={data.dob} onChange={v => setData({...data, dob: v})} />
+            
+            {/* --- DROPDOWN SYNC FIX --- */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-tighter ml-1">Sex ⓘ</label>
+              <select 
+                className="bg-white border border-slate-200 p-2.5 rounded-xl outline-none focus:border-indigo-400 text-xs text-slate-700 shadow-sm transition-all"
+                value={data.sex} 
+                onChange={e => setData({...data, sex: e.target.value})}
+              >
+                <option value="M">Male (M)</option>
+                <option value="F">Female (F)</option>
+              </select>
+            </div>
+
             <InputField label="Issue date" value={data.issueDate} onChange={v => setData({...data, issueDate: v})} />
             <InputField label="Expiry date" value={data.expiryDate} onChange={v => setData({...data, expiryDate: v})} />
             <InputField label="DD" value={data.dd} onChange={v => setData({...data, dd: v})} />
@@ -174,7 +190,6 @@ function App() {
               {data.photo && <img src={data.photo} className="w-full h-full object-cover" alt="ghost1" />}
            </div>
 
-           {/* --- SIGNATURE MAPPING ADDED --- */}
            <div 
              className="absolute top-[205px] left-[35px] text-[22px] text-indigo-950 opacity-70" 
              style={{ fontFamily: "'SignatureFont', cursive", letterSpacing: '-1px', fontWeight: '300' }}
